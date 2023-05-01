@@ -606,8 +606,13 @@ TYPED_TEST(TestLocalFS, StressGetFileInfoGenerator) {
 }
 
 TYPED_TEST(TestLocalFS, NeedsExtendedFileInfo) {
+#ifdef _WIN32
+  ASSERT_OK(this->fs_->CreateDir("AB\\CD"));
+  CreateFile(this->fs_.get(), "AB\\ab", "data");
+#else
   ASSERT_OK(this->fs_->CreateDir("AB/CD"));
   CreateFile(this->fs_.get(), "AB/ab", "data");
+#endif
 
   FileSelector selector;
   selector.base_dir = "";
