@@ -6003,7 +6003,7 @@ static const R_CallMethodDef CallEntries[] = {
 		{ "_arrow_fs___FileSelector__allow_not_found", (DL_FUNC) &_arrow_fs___FileSelector__allow_not_found, 1}, 
 		{ "_arrow_fs___FileSelector__recursive", (DL_FUNC) &_arrow_fs___FileSelector__recursive, 1}, 
 		{ "_arrow_fs___FileSelector__needs_extended_file_info", (DL_FUNC) &_arrow_fs___FileSelector__needs_extended_file_info, 1}, 
-		{ "_arrow_fs___FileSelector__create", (DL_FUNC) &_arrow_fs___FileSelector__create, 3}, 
+		{ "_arrow_fs___FileSelector__create", (DL_FUNC) &_arrow_fs___FileSelector__create, 4}, 
 		{ "_arrow_fs___FileSystem__GetTargetInfos_Paths", (DL_FUNC) &_arrow_fs___FileSystem__GetTargetInfos_Paths, 2}, 
 		{ "_arrow_fs___FileSystem__GetTargetInfos_FileSelector", (DL_FUNC) &_arrow_fs___FileSystem__GetTargetInfos_FileSelector, 2}, 
 		{ "_arrow_fs___FileSystem__CreateDir", (DL_FUNC) &_arrow_fs___FileSystem__CreateDir, 3}, 
