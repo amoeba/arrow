@@ -134,27 +134,34 @@ test_that("LocalFileSystem + Selector needs_extended_file_info", {
   dir.create(td <- tempfile())
   writeLines("testing", file.path(td, "testfile.txt"))
 
+  # needs_extended_file_info=true
   selector <- FileSelector$create(
     td,
     needs_extended_file_info = TRUE
   )
   infos <- fs$GetFileInfo(selector)
+  expect_equal(length(infos), 1L)
 
-  # TODO: Run these tests and fix
-  expect_equal(length(infos), 4L)
-  types <- sapply(infos, function(.x) .x$type)
-  expect_equal(sum(types == FileType$File), 3L)
-  expect_equal(sum(types == FileType$Directory), 1L)
+  info <- infos[[1]]
+  expect_more_than(info$size, 0)
+  expect_false(is.null(info$mtime))
 
+  # needs_extended_file_info=false
   selector <- FileSelector$create(
     td,
     needs_extended_file_info = FALSE
   )
   infos <- fs$GetFileInfo(selector)
-  expect_equal(length(infos), 3L)
-  types <- sapply(infos, function(.x) .x$type)
-  expect_equal(sum(types == FileType$File), 2L)
-  expect_equal(sum(types == FileType$Directory), 1L)
+  expect_equal(length(infos), 1L)
+
+  #' TODO: Debug why we get default/empty values instead of NULLs
+  #' > infos[[1]]$mtime
+  # '[1] "1969-12-31 16:00:00 PST"
+  #' > infos[[1]]$size
+  #' [1] -1
+  info <- infos[[1]]
+  expect_null(info$size)
+  expect_null(info$mtime)
 })
 
 # This test_that block must be above the two that follow it because S3FileSystem$create
