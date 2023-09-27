@@ -774,6 +774,38 @@ def test_get_file_info_with_selector(fs, pathfn):
     finally:
         fs.delete_dir(base_dir)
 
+def test_fileselector_needs_extended_file_info(fs, pathfn):
+    base_dir = pathfn('selector-dir/')
+    file_a = pathfn('selector-dir/test_file_a')
+
+    try:
+        # Test needs_extended_file_info default
+        selector = FileSelector(base_dir, allow_not_found=False,
+                                recursive=True)
+        assert selector.base_dir == base_dir
+
+        infos = fs.get_file_info(selector)
+
+        assert len(infos) == 1
+
+        for info in infos:
+            assert info.size == "hi"
+            assert info.mtime == "howareya"
+
+        # Test needs_extended_file_info=false
+        selector = FileSelector(base_dir, allow_not_found=False,
+                                recursive=True)
+        assert selector.base_dir == base_dir
+
+        infos = fs.get_file_info(selector)
+        assert len(infos) == 1
+
+        for info in infos:
+            assert info.size == "hi"
+            assert info.mtime == "howareya"
+    finally:
+        fs.delete_dir(base_dir)
+
 
 def test_create_dir(fs, pathfn):
     # s3fs fails deleting dir fails if it is empty

@@ -129,6 +129,34 @@ test_that("LocalFileSystem + Selector", {
   expect_equal(sum(types == FileType$Directory), 1L)
 })
 
+test_that("LocalFileSystem + Selector needs_extended_file_info", {
+  fs <- LocalFileSystem$create()
+  dir.create(td <- tempfile())
+  writeLines("testing", file.path(td, "testfile.txt"))
+
+  selector <- FileSelector$create(
+    td,
+    needs_extended_file_info = TRUE
+  )
+  infos <- fs$GetFileInfo(selector)
+
+  # TODO: Run these tests and fix
+  expect_equal(length(infos), 4L)
+  types <- sapply(infos, function(.x) .x$type)
+  expect_equal(sum(types == FileType$File), 3L)
+  expect_equal(sum(types == FileType$Directory), 1L)
+
+  selector <- FileSelector$create(
+    td,
+    needs_extended_file_info = FALSE
+  )
+  infos <- fs$GetFileInfo(selector)
+  expect_equal(length(infos), 3L)
+  types <- sapply(infos, function(.x) .x$type)
+  expect_equal(sum(types == FileType$File), 2L)
+  expect_equal(sum(types == FileType$Directory), 1L)
+})
+
 # This test_that block must be above the two that follow it because S3FileSystem$create
 # uses a slightly different set of cpp code that is R-only, so if there are bugs
 # in the initialization of S3 (e.g. ARROW-14667) they will not be caught because
