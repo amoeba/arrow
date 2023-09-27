@@ -93,6 +93,11 @@ FileInfo <- R6Class("FileInfo",
 #'    filesystem. If `FALSE`, an error is returned.  If `TRUE`, an empty
 #'    selection is returned
 #' - `recursive`: Whether to recurse into subdirectories.
+#' - `needs_extended_file_info`: Whether to retrieve extended information about
+#'    selected files beyond the path and type. Currently only used by
+#'    `LocalFileSystem`, setting this to false may result in a significant
+#'    performance increase at the cost of not returning file size and
+#'    modification time of files.
 #'
 #' @rdname FileSelector
 #' @export
@@ -101,12 +106,13 @@ FileSelector <- R6Class("FileSelector",
   active = list(
     base_dir = function() fs___FileSelector__base_dir(self),
     allow_not_found = function() fs___FileSelector__allow_not_found(self),
-    recursive = function() fs___FileSelector__recursive(self)
+    recursive = function() fs___FileSelector__recursive(self),
+    needs_extended_file_info = function() fs___FileSelector_needs_extended_file_info(self)
   )
 )
 
-FileSelector$create <- function(base_dir, allow_not_found = FALSE, recursive = FALSE) {
-  fs___FileSelector__create(clean_path_rel(base_dir), allow_not_found, recursive)
+FileSelector$create <- function(base_dir, allow_not_found = FALSE, recursive = FALSE, needs_extended_file_info = TRUE) {
+  fs___FileSelector__create(clean_path_rel(base_dir), allow_not_found, recursive, needs_extended_file_info)
 }
 
 #' @title FileSystem classes

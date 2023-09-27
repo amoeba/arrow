@@ -72,7 +72,8 @@ DatasetFactory$create <- function(x,
   selector <- FileSelector$create(
     path_and_fs$path,
     allow_not_found = FALSE,
-    recursive = TRUE
+    recursive = TRUE,
+    needs_extended_file_info = TRUE
   )
 
   FileSystemDatasetFactory$create(path_and_fs$fs, selector, NULL, format, partitioning, factory_options)

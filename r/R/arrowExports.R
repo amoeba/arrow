@@ -1292,8 +1292,12 @@ fs___FileSelector__recursive <- function(selector) {
   .Call(`_arrow_fs___FileSelector__recursive`, selector)
 }
 
-fs___FileSelector__create <- function(base_dir, allow_not_found, recursive) {
-  .Call(`_arrow_fs___FileSelector__create`, base_dir, allow_not_found, recursive)
+fs___FileSelector__needs_extended_file_info <- function(selector) {
+  .Call(`_arrow_fs___FileSelector__needs_extended_file_info`, selector)
+}
+
+fs___FileSelector__create <- function(base_dir, allow_not_found, recursive, needs_extended_file_info) {
+  .Call(`_arrow_fs___FileSelector__create`, base_dir, allow_not_found, recursive, needs_extended_file_info)
 }
 
 fs___FileSystem__GetTargetInfos_Paths <- function(file_system, paths) {

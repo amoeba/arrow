@@ -3328,13 +3328,22 @@ BEGIN_CPP11
 END_CPP11
 }
 // filesystem.cpp
-std::shared_ptr<fs::FileSelector> fs___FileSelector__create(const std::string& base_dir, bool allow_not_found, bool recursive);
-extern "C" SEXP _arrow_fs___FileSelector__create(SEXP base_dir_sexp, SEXP allow_not_found_sexp, SEXP recursive_sexp){
+bool fs___FileSelector__needs_extended_file_info(const std::shared_ptr<fs::FileSelector>& selector);
+extern "C" SEXP _arrow_fs___FileSelector__needs_extended_file_info(SEXP selector_sexp){
+BEGIN_CPP11
+	arrow::r::Input<const std::shared_ptr<fs::FileSelector>&>::type selector(selector_sexp);
+	return cpp11::as_sexp(fs___FileSelector__needs_extended_file_info(selector));
+END_CPP11
+}
+// filesystem.cpp
+std::shared_ptr<fs::FileSelector> fs___FileSelector__create(const std::string& base_dir, bool allow_not_found, bool recursive, bool needs_extended_file_info);
+extern "C" SEXP _arrow_fs___FileSelector__create(SEXP base_dir_sexp, SEXP allow_not_found_sexp, SEXP recursive_sexp, SEXP needs_extended_file_info_sexp){
 BEGIN_CPP11
 	arrow::r::Input<const std::string&>::type base_dir(base_dir_sexp);
 	arrow::r::Input<bool>::type allow_not_found(allow_not_found_sexp);
 	arrow::r::Input<bool>::type recursive(recursive_sexp);
-	return cpp11::as_sexp(fs___FileSelector__create(base_dir, allow_not_found, recursive));
+	arrow::r::Input<bool>::type needs_extended_file_info(needs_extended_file_info_sexp);
+	return cpp11::as_sexp(fs___FileSelector__create(base_dir, allow_not_found, recursive, needs_extended_file_info));
 END_CPP11
 }
 // filesystem.cpp
@@ -5993,6 +6002,7 @@ static const R_CallMethodDef CallEntries[] = {
 		{ "_arrow_fs___FileSelector__base_dir", (DL_FUNC) &_arrow_fs___FileSelector__base_dir, 1}, 
 		{ "_arrow_fs___FileSelector__allow_not_found", (DL_FUNC) &_arrow_fs___FileSelector__allow_not_found, 1}, 
 		{ "_arrow_fs___FileSelector__recursive", (DL_FUNC) &_arrow_fs___FileSelector__recursive, 1}, 
+		{ "_arrow_fs___FileSelector__needs_extended_file_info", (DL_FUNC) &_arrow_fs___FileSelector__needs_extended_file_info, 1}, 
 		{ "_arrow_fs___FileSelector__create", (DL_FUNC) &_arrow_fs___FileSelector__create, 3}, 
 		{ "_arrow_fs___FileSystem__GetTargetInfos_Paths", (DL_FUNC) &_arrow_fs___FileSystem__GetTargetInfos_Paths, 2}, 
 		{ "_arrow_fs___FileSystem__GetTargetInfos_FileSelector", (DL_FUNC) &_arrow_fs___FileSystem__GetTargetInfos_FileSelector, 2}, 

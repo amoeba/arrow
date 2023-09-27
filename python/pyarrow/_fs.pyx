@@ -340,6 +340,13 @@ cdef class FileSelector(_Weakrefable):
         If true, an empty selection is returned.
     recursive : bool, default False
         Whether to recurse into subdirectories.
+    needs_extended_file_info : bool, default True
+        Whether to retrieve extended information about selected files beyond the
+        path and type.
+
+        Currently only used by LocalFileSystem, setting this to false may result
+        in a significant performance increase at the cost of not returning
+        file size and modification time of files.
 
     Examples
     --------
@@ -368,7 +375,7 @@ cdef class FileSelector(_Weakrefable):
     """
 
     def __init__(self, base_dir, bint allow_not_found=False,
-                 bint recursive=False):
+                 bint recursive=False, bint needs_extended_file_info=True):
         self.base_dir = base_dir
         self.recursive = recursive
         self.allow_not_found = allow_not_found
@@ -405,6 +412,14 @@ cdef class FileSelector(_Weakrefable):
     @recursive.setter
     def recursive(self, bint recursive):
         self.selector.recursive = recursive
+
+    @property
+    def needs_extended_file_info(self):
+        return self.selector.needs_extended_file_info
+
+    @needs_extended_file_info.setter
+    def needs_extended_file_info(self, bint needs_extended_file_info):
+        self.selector.needs_extended_file_info = needs_extended_file_info
 
     def __repr__(self):
         return ("<FileSelector base_dir={0.base_dir!r} "

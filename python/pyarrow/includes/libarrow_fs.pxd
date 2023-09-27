@@ -52,6 +52,7 @@ cdef extern from "arrow/filesystem/api.h" namespace "arrow::fs" nogil:
         c_string base_dir
         c_bool allow_not_found
         c_bool recursive
+        c_bool needs_extended_file_info
 
     cdef cppclass CFileLocator "arrow::fs::FileLocator":
         shared_ptr[CFileSystem] filesystem
