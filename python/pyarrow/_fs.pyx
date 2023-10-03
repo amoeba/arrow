@@ -379,6 +379,7 @@ cdef class FileSelector(_Weakrefable):
         self.base_dir = base_dir
         self.recursive = recursive
         self.allow_not_found = allow_not_found
+        self.needs_extended_file_info = needs_extended_file_info
 
     @staticmethod
     cdef FileSelector wrap(CFileSelector wrapped):
@@ -423,7 +424,10 @@ cdef class FileSelector(_Weakrefable):
 
     def __repr__(self):
         return ("<FileSelector base_dir={0.base_dir!r} "
-                "recursive={0.recursive}>".format(self))
+                "recursive={0.recursive} "
+                "allow_not_found={0.allow_not_found} "
+                "needs_extended_file_info={0.needs_extended_file_info}>"
+                .format(self))
 
 
 cdef class FileSystem(_Weakrefable):
