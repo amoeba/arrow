@@ -802,8 +802,8 @@ def test_fileselector_needs_extended_file_info(fs, pathfn):
         assert len(infos) == 1
 
         for info in infos:
-            assert info.size == None
-            assert info.mtime == None
+            assert info.size is None
+            assert info.mtime is None
     finally:
         fs.delete_dir(base_dir)
 
