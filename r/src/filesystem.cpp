@@ -73,8 +73,14 @@ void fs___FileInfo__set_path(const std::shared_ptr<fs::FileInfo>& x,
 }
 
 // [[arrow::export]]
-r_vec_size fs___FileInfo__size(const std::shared_ptr<fs::FileInfo>& x) {
-  return r_vec_size(x->size());
+SEXP fs___FileInfo__size(const std::shared_ptr<fs::FileInfo>& x) {
+  auto size = x->size();
+
+  if (size == fs::kNoSize) {
+    return R_NilValue;
+  }
+
+  return cpp11::as_sexp(r_vec_size(size));
 }
 
 // [[arrow::export]]
@@ -94,6 +100,10 @@ std::string fs___FileInfo__extension(const std::shared_ptr<fs::FileInfo>& x) {
 
 // [[arrow::export]]
 SEXP fs___FileInfo__mtime(const std::shared_ptr<fs::FileInfo>& x) {
+  if (x->mtime() == fs::kNoTime) {
+    return R_NilValue;
+  }
+  
   SEXP res = PROTECT(Rf_allocVector(REALSXP, 1));
   // .mtime() gets us nanoseconds since epoch, POSIXct is seconds since epoch as a double
   REAL(res)[0] = static_cast<double>(x->mtime().time_since_epoch().count()) / 1000000000;

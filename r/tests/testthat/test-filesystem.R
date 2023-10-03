@@ -143,7 +143,7 @@ test_that("LocalFileSystem + Selector needs_extended_file_info", {
   expect_equal(length(infos), 1L)
 
   info <- infos[[1]]
-  expect_more_than(info$size, 0)
+  expect_gt(info$size, 0)
   expect_false(is.null(info$mtime))
 
   # needs_extended_file_info=false
@@ -154,11 +154,6 @@ test_that("LocalFileSystem + Selector needs_extended_file_info", {
   infos <- fs$GetFileInfo(selector)
   expect_equal(length(infos), 1L)
 
-  #' TODO: Debug why we get default/empty values instead of NULLs
-  #' > infos[[1]]$mtime
-  # '[1] "1969-12-31 16:00:00 PST"
-  #' > infos[[1]]$size
-  #' [1] -1
   info <- infos[[1]]
   expect_null(info$size)
   expect_null(info$mtime)

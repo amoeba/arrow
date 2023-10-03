@@ -3252,7 +3252,7 @@ BEGIN_CPP11
 END_CPP11
 }
 // filesystem.cpp
-r_vec_size fs___FileInfo__size(const std::shared_ptr<fs::FileInfo>& x);
+SEXP fs___FileInfo__size(const std::shared_ptr<fs::FileInfo>& x);
 extern "C" SEXP _arrow_fs___FileInfo__size(SEXP x_sexp){
 BEGIN_CPP11
 	arrow::r::Input<const std::shared_ptr<fs::FileInfo>&>::type x(x_sexp);
