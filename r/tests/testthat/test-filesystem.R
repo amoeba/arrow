@@ -145,6 +145,7 @@ test_that("LocalFileSystem + Selector needs_extended_file_info", {
   info <- infos[[1]]
   expect_gt(info$size, 0)
   expect_false(is.null(info$mtime))
+  expect_true(inherits(info$mtime, "POSIXct"))
 
   # needs_extended_file_info=false
   selector <- FileSelector$create(
