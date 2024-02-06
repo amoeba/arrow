@@ -85,12 +85,58 @@ concepts, here is a small glossary to help disambiguate.
 
 .. _format_layout:
 
+Types
+=====
+
+Arrow defines a set of user-facing types and each type has a corresponding physical layout and an optional set of parameters which specialize the type.
+
+TODOs
+-----
+
+Do these before sending up for review:
+
+- Link to this section in Schema.fbs
+      https://github.com/apache/arrow/blob/505a2e4519ba8d4983da6caa1c56ecae8d063e84/format/Schema.fbs#L407C5-L430
+- Check Glossary.rst for any updates we might make (such as to "data type")
+- Do we want to list Int8, Int16, etc or just Int?
+- Review the members of the Types enum from Schema.fbs that I didn't list here (because they're physical layouts and not high-level types): Null, Binary, FixedSizeBinary, LargeBinary, BinaryView, Utf8View, List, LargeList, ListView, LargeListView, FixedSizeList, Map, Struct, Union, RunEndEncoded.
+-
++---------------+-----------------+----------------------------------------------+
+| Type          | Layout          | Parameters                                   |
++===============+=================+==============================================+
+| Int           | Primitive       | bitWidth (int), is_signed (bool)             |
++---------------+-----------------+----------------------------------------------+
+| Bool          | Primitive       | None                                         |
++---------------+-----------------+----------------------------------------------+
+| FloatingPoint | Primitive       | precision (Precision)                        |
++---------------+-----------------+----------------------------------------------+
+| Decimal       | FixedSizeBinary | precision (int), scale (int), bitWidth (int) |
++---------------+-----------------+----------------------------------------------+
+| Utf8          | VarBinary       | None                                         |
++---------------+-----------------+----------------------------------------------+
+| LargeUtf8     | VarBinary       | None                                         |
++---------------+-----------------+----------------------------------------------+
+| Date          | ???             | unit (DateUnit)                              |
++---------------+-----------------+----------------------------------------------+
+| Time          | ???             | unit (TimeUnit), bitWidth (int)              |
++---------------+-----------------+----------------------------------------------+
+| Timestamp     | ???             | unit (TimeUnit), timezone (string)           |
++---------------+-----------------+----------------------------------------------+
+| Interval      | ???             | unit (IntervalUnit)                          |
++---------------+-----------------+----------------------------------------------+
+| Duration      | ???             | unit (TimeUnit)                              |
++---------------+-----------------+----------------------------------------------+
+
+TODO: Closing text for section.
+
+.. _format_type:
+
 Physical Memory Layout
 ======================
 
 Arrays are defined by a few pieces of metadata and data:
 
-* A logical data type.
+* A Type. See :ref:`format_type`
 * A sequence of buffers.
 * A length as a 64-bit signed integer. Implementations are permitted
   to be limited to 32-bit lengths, see more on this below.
