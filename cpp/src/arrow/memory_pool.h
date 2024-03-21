@@ -48,13 +48,13 @@ class MemoryPoolStats {
   int64_t num_allocations() const { return num_allocs_.load(); }
 
   inline void UpdateAllocatedBytes(int64_t diff, bool is_free = false) {
-//    auto allocated = bytes_allocated_.fetch_add(diff) + diff;
-//    // "maximum" allocated memory is ill-defined in multi-threaded code,
-//    // so don't try to be too rigorous here
-//    if (diff > 0 && allocated > max_memory_) {
-//      max_memory_ = allocated;
-//    }
-//
+    auto allocated = bytes_allocated_.fetch_add(diff) + diff;
+    // "maximum" allocated memory is ill-defined in multi-threaded code,
+    // so don't try to be too rigorous here
+    if (diff > 0 && allocated > max_memory_) {
+      max_memory_ = allocated;
+    }
+
 //    // Reallocations might just expand/contract the allocation in place or might
 //    // copy to a new location. We can't really know, so we just represent the
 //    // optimistic case.
