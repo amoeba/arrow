@@ -35,7 +35,6 @@
 #include "arrow/array/builder_primitive.h"
 #include "arrow/array/builder_time.h"
 #include "arrow/chunked_array.h"
-#include "arrow/ipc/json_simple.h"
 #include "arrow/scalar.h"
 #include "arrow/testing/builder.h"
 #include "arrow/testing/gtest_util.h"
@@ -45,6 +44,7 @@
 #include "arrow/util/checked_cast.h"
 #include "arrow/util/decimal.h"
 #include "arrow/util/float16.h"
+#include "arrow/util/json_simple.h"
 
 #if defined(_MSC_VER)
 // "warning C4307: '+': integral constant overflow"
@@ -55,7 +55,6 @@ namespace arrow {
 
 using util::Float16;
 
-namespace ipc {
 namespace json {
 
 using ::arrow::internal::BytesToBits;
@@ -1524,5 +1523,4 @@ TEST(TestDictScalarFromJSON, Errors) {
 }
 
 }  // namespace json
-}  // namespace ipc
 }  // namespace arrow

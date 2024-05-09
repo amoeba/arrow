@@ -528,6 +528,10 @@ set(ARROW_UTIL_SRCS
     util/utf8.cc
     util/value_parsing.cc)
 
+if(ARROW_JSON)
+  list(APPEND ARROW_UTIL_SRCS util/json_simple.cc)
+endif()
+
 append_runtime_avx2_src(ARROW_UTIL_SRCS util/bpacking_avx2.cc)
 append_runtime_avx512_src(ARROW_UTIL_SRCS util/bpacking_avx512.cc)
 if(ARROW_HAVE_NEON)
@@ -851,17 +855,14 @@ endif()
 
 if(ARROW_IPC)
   list(APPEND
-       ARROW_IPC_SRCS
-       ipc/dictionary.cc
-       ipc/feather.cc
-       ipc/message.cc
-       ipc/metadata_internal.cc
-       ipc/options.cc
-       ipc/reader.cc
-       ipc/writer.cc)
-  if(ARROW_JSON)
-    list(APPEND ARROW_IPC_SRCS ipc/json_simple.cc)
-  endif()
+    ARROW_IPC_SRCS
+    ipc/dictionary.cc
+    ipc/feather.cc
+    ipc/message.cc
+    ipc/metadata_internal.cc
+    ipc/options.cc
+    ipc/reader.cc
+    ipc/writer.cc)
   arrow_add_object_library(ARROW_IPC ${ARROW_IPC_SRCS})
   foreach(ARROW_IPC_TARGET ${ARROW_IPC_TARGETS})
     target_link_libraries(${ARROW_IPC_TARGET} PRIVATE arrow::flatbuffers)

@@ -43,7 +43,7 @@
 #include "arrow/compute/api.h"
 #include "arrow/compute/kernels/test_util.h"
 
-#include "arrow/ipc/json_simple.h"
+#include "arrow/util/json_simple.h"
 
 namespace arrow {
 

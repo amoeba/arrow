@@ -55,7 +55,7 @@ namespace arrow {
 using internal::ParseValue;
 using util::Float16;
 
-namespace ipc::json {
+namespace json {
 
 using ::arrow::internal::checked_cast;
 using ::arrow::internal::checked_pointer_cast;
@@ -1064,5 +1064,5 @@ Status DictScalarFromJSON(const std::shared_ptr<DataType>& type,
   return Status::OK();
 }
 
-}  // namespace ipc::json
+}  // namespace json
 }  // namespace arrow

@@ -219,11 +219,12 @@ takes precedence over ccache if a storage backend is configured" ON)
   define_option(ARROW_BUILD_EXAMPLES "Build the Arrow examples" OFF)
 
   define_option(ARROW_BUILD_TESTS
-                "Build the Arrow googletest unit tests"
-                OFF
-                DEPENDS
-                ARROW_IPC
-                ARROW_TESTING)
+    "Build the Arrow googletest unit tests"
+    OFF
+    DEPENDS
+    ARROW_IPC
+    ARROW_JSON
+    ARROW_TESTING)
 
   define_option(ARROW_ENABLE_TIMING_TESTS "Enable timing-sensitive tests" ON)
 
@@ -234,11 +235,12 @@ takes precedence over ccache if a storage backend is configured" ON)
                 ARROW_TESTING)
 
   define_option(ARROW_BUILD_BENCHMARKS
-                "Build the Arrow micro benchmarks"
-                OFF
-                DEPENDS
-                ARROW_IPC
-                ARROW_TESTING)
+    "Build the Arrow micro benchmarks"
+    OFF
+    DEPENDS
+    ARROW_IPC
+    ARROW_JSON
+    ARROW_TESTING)
 
   # Reference benchmarks are used to compare to naive implementation, or
   # discover various hardware limits.

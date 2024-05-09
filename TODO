@@ -1,0 +1,3 @@
+- Check what happens when ARROW_JSON is off
+- Check DefineOptions, see if IPC should just depend on JSON or what
+- Doublecheck JSON helpers aren't there with a minimal (ie we don't link rapidjson into minimal)

@@ -32,7 +32,7 @@ namespace arrow {
 class Array;
 class DataType;
 
-namespace ipc::json {
+namespace json {
 
 ARROW_EXPORT
 Result<std::shared_ptr<Array>> ArrayFromJSON(const std::shared_ptr<DataType>&,
@@ -63,5 +63,5 @@ ARROW_EXPORT
 Status DictScalarFromJSON(const std::shared_ptr<DataType>&, std::string_view index_json,
                           std::string_view dictionary_json, std::shared_ptr<Scalar>* out);
 
-}  // namespace ipc::json
+}  // namespace json
 }  // namespace arrow
