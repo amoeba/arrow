@@ -131,10 +131,44 @@ BENCHMARK_REGISTER_F(LocalFSFixture, AsyncFileDiscovery)
     ->UseRealTime()
     ->Unit(benchmark::kMillisecond);
 
-/// Benchmark for `LocalFileSystem::FileSelector()` performance with
+/// Synchronous benchmark for `LocalFileSystem::FileSelector()` performance with
 /// needs_extended_file_info set to true or false when iterating over FileInfos
 /// and counting files and directories
-BENCHMARK_DEFINE_F(LocalFSFixture, NeedsExtendedFileInfo)
+BENCHMARK_DEFINE_F(LocalFSFixture, NeedsExtendedFileInfoSync)
+(benchmark::State& st) {
+  size_t total_file_count = 0;
+  size_t total_folder_count = 0;
+
+  for (auto _ : st) {
+    auto options = LocalFileSystemOptions::Defaults();
+    auto test_fs = std::make_unique<LocalFileSystem>(options);
+
+    FileSelector select;
+    select.base_dir = tmp_dir_->path().ToString();
+    select.recursive = true;
+    select.needs_extended_file_info = st.range(0);
+
+    ASSERT_OK_AND_ASSIGN(auto fis, test_fs->GetFileInfo(select))
+    for (const auto& fi : fis) {
+      if (fi.IsFile()) {
+        total_file_count += 1;
+      } else if (fi.IsDirectory()) {
+        total_folder_count += 1;
+      }
+    }
+  }
+  st.SetItemsProcessed(total_file_count + total_folder_count);
+}
+BENCHMARK_REGISTER_F(LocalFSFixture, NeedsExtendedFileInfoSync)
+    ->ArgNames({"needs_extended_file_info"})
+    ->ArgsProduct({{true, false}})
+    ->UseRealTime()
+    ->Unit(benchmark::kMillisecond);
+
+/// Asynchronous benchmark for `LocalFileSystem::FileSelector()` performance
+/// with needs_extended_file_info set to true or false when iterating over
+/// FileInfos and counting files and directories
+BENCHMARK_DEFINE_F(LocalFSFixture, NeedsExtendedFileInfoAsync)
 (benchmark::State& st) {
   size_t total_file_count = 0;
   size_t total_folder_count = 0;
@@ -151,22 +185,22 @@ BENCHMARK_DEFINE_F(LocalFSFixture, NeedsExtendedFileInfo)
     auto file_gen = test_fs->GetFileInfoGenerator(std::move(select));
 
     // Trigger fetching from the generator
-    auto visit_fut =
-        VisitAsyncGenerator(file_gen, [&total_file_count, &total_folder_count](const FileInfoVector& fv) {
-          for (const auto &fi : fv) {
+    auto visit_fut = VisitAsyncGenerator(
+        file_gen, [&total_file_count, &total_folder_count](const FileInfoVector& fv) {
+          for (const auto& fi : fv) {
             if (fi.IsFile()) {
               total_file_count += 1;
             } else if (fi.IsDirectory()) {
               total_folder_count += 1;
             }
-          }   
+          }
           return Status::OK();
         });
     ASSERT_FINISHES_OK(visit_fut);
   }
   st.SetItemsProcessed(total_file_count + total_folder_count);
 }
-BENCHMARK_REGISTER_F(LocalFSFixture, NeedsExtendedFileInfo)
+BENCHMARK_REGISTER_F(LocalFSFixture, NeedsExtendedFileInfoAsync)
     ->ArgNames({"needs_extended_file_info"})
     ->ArgsProduct({{true, false}})
     ->UseRealTime()
