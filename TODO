@@ -1,0 +1,2 @@
+- localfs pr, need to parameterize tests to deal with needs_extended_file_info.
+- do windows compat later
