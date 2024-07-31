@@ -657,6 +657,70 @@ static void BM_ReadMultipleRowGroupsGenerator(::benchmark::State& state) {
 
 BENCHMARK(BM_ReadMultipleRowGroupsGenerator);
 
+static void BM_MultithreadedWrite(::benchmark::State& state) {
+  std::shared_ptr<::arrow::Table> table =
+      RandomStringTable(BENCHMARK_SIZE, state.range(2), state.range(1));
+  auto pool = ::arrow::default_memory_pool();
+  // TODO(bryce): Do we want to just write one batch here?
+  PARQUET_ASSIGN_OR_THROW(auto batch, table->CombineChunksToBatch(pool));
+
+  while (state.KeepRunning()) {
+    auto sink = CreateOutputStream();
+    auto write_props = WriterProperties::Builder()
+                           .write_batch_size(100)
+                           ->max_row_group_length(table->num_rows())
+                           ->build();
+
+    // TODO(bryce): Figure out what I want here...see above commented out code.
+    //
+    // auto write_props = WriterProperties::Builder().write_batch_size(1024)->build();
+
+    auto arrow_properties =
+        ArrowWriterProperties::Builder().set_use_threads(state.range(0))->build();
+    PARQUET_ASSIGN_OR_THROW(
+        auto writer,
+        arrow::FileWriter::Open(*table->schema(), pool, sink, std::move(write_props),
+                                std::move(arrow_properties)));
+    ASSERT_OK_NO_THROW(writer->NewBufferedRowGroup());
+    ASSERT_OK_NO_THROW(writer->WriteRecordBatch(*batch));
+    ASSERT_OK_NO_THROW(writer->Close());
+    ASSERT_OK_AND_ASSIGN(auto buffer, sink->Finish());
+  }
+
+  // TODO(bryce): Is this the right way to calculate? I copied this code from another
+  // benchmark.
+  //
+  // Offsets + data
+  int64_t total_bytes = table->column(0)->chunk(0)->data()->buffers[1]->size() +
+                        table->column(0)->chunk(0)->data()->buffers[2]->size();
+  state.SetItemsProcessed(BENCHMARK_SIZE * state.iterations());
+  state.SetBytesProcessed(total_bytes * state.iterations());
+}
+
+static void BM_BM_MultithreadedWrite(::benchmark::State& state) {
+  BM_MultithreadedWrite(state);
+}
+
+BENCHMARK(BM_BM_MultithreadedWrite)
+    ->ArgNames({"use_threads", "null_probability", "unique_values"})
+    // Copied from BM_WriteBinaryColumn/BM_ReadBinaryColumn
+    ->Args({false, 0, 32})
+    ->Args({false, 0, kInfiniteUniqueValues})
+    ->Args({false, 1, 32})
+    ->Args({false, 50, 32})
+    ->Args({false, 99, 32})
+    ->Args({false, 1, kInfiniteUniqueValues})
+    ->Args({false, 50, kInfiniteUniqueValues})
+    ->Args({false, 99, kInfiniteUniqueValues})
+    ->Args({true, 0, 32})
+    ->Args({true, 0, kInfiniteUniqueValues})
+    ->Args({true, 1, 32})
+    ->Args({true, 50, 32})
+    ->Args({true, 99, 32})
+    ->Args({true, 1, kInfiniteUniqueValues})
+    ->Args({true, 50, kInfiniteUniqueValues})
+    ->Args({true, 99, kInfiniteUniqueValues});
+
 }  // namespace benchmark
 
 }  // namespace parquet

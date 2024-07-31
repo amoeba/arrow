@@ -1,0 +1,83 @@
+static void BM_MultithreadedWrite(::benchmark::State& state, bool use_threads) {
+  std::shared_ptr<::arrow::Table> table =
+      RandomStringTable(BENCHMARK_SIZE, state.range(1), state.range(0));
+  auto pool = ::arrow::default_memory_pool();
+  // TODO(bryce): Do we want to just write one batch here?
+  PARQUET_ASSIGN_OR_THROW(auto batch, table->CombineChunksToBatch(pool));
+
+  while (state.KeepRunning()) {
+    auto sink = CreateOutputStream();
+    auto write_props = WriterProperties::Builder()
+                         .write_batch_size(100)
+                         ->max_row_group_length(table->num_rows())
+                         ->build();
+
+    // TODO(bryce): Figure out what I want here...see above commented out code.
+    //
+    // auto write_props = WriterProperties::Builder().write_batch_size(1024)->build();
+
+    auto arrow_properties = ArrowWriterProperties::Builder().set_use_threads(use_threads)->build();
+    PARQUET_ASSIGN_OR_THROW(
+        auto writer, arrow::FileWriter::Open(*table->schema(), pool, sink, std::move(write_props),
+                                      std::move(arrow_properties)));
+    ASSERT_OK_NO_THROW(writer->NewBufferedRowGroup());
+    ASSERT_OK_NO_THROW(writer->WriteRecordBatch(*batch));
+    ASSERT_OK_NO_THROW(writer->Close());
+    ASSERT_OK_AND_ASSIGN(auto buffer, sink->Finish());
+  }
+
+  // TODO(bryce): Is this the right way to calculate? I copied this code from another benchmark.
+  //
+  // Offsets + data
+  int64_t total_bytes = table->column(0)->chunk(0)->data()->buffers[1]->size() +
+                        table->column(0)->chunk(0)->data()->buffers[2]->size();
+  state.SetItemsProcessed(BENCHMARK_SIZE * state.iterations());
+  state.SetBytesProcessed(total_bytes * state.iterations());
+}
+
+static void BM_BM_MultithreadedWriteSingledThreaded(::benchmark::State& state) { BM_MultithreadedWrite(state, false); }
+static void BM_BM_MultithreadedWriteMultiThreaded(::benchmark::State& state) { BM_MultithreadedWrite(state, true); }
+
+BENCHMARK(BM_BM_MultithreadedWriteSingledThreaded)->ArgNames({"null_probability", "unique_values"})
+    // We vary unique values to trigger the dictionary-encoded (for low-cardinality)
+    // and plain (for high-cardinality) code paths.
+    ->Args({0, 32})
+    ->Args({0, kInfiniteUniqueValues})
+    ->Args({1, 32})
+    ->Args({50, 32})
+    ->Args({99, 32})
+    ->Args({1, kInfiniteUniqueValues})
+    ->Args({50, kInfiniteUniqueValues})
+    ->Args({99, kInfiniteUniqueValues});
+BENCHMARK(BM_BM_MultithreadedWriteMultiThreaded)->ArgNames({"null_probability", "unique_values"})
+    // We vary unique values to trigger the dictionary-encoded (for low-cardinality)
+    // and plain (for high-cardinality) code paths.
+    ->Args({0, 32})
+    ->Args({0, kInfiniteUniqueValues})
+    ->Args({1, 32})
+    ->Args({50, 32})
+    ->Args({99, 32})
+    ->Args({1, kInfiniteUniqueValues})
+    ->Args({50, kInfiniteUniqueValues})
+    ->Args({99, kInfiniteUniqueValues});
+
+
+    ---------------------------------------------------------------------------------------------------------------------------------------
+Benchmark                                                                             Time             CPU   Iterations UserCounters...
+---------------------------------------------------------------------------------------------------------------------------------------
+BM_BM_MultithreadedWriteSingledThreaded/null_probability:0/unique_values:32   268982944 ns    268195000 ns            3 bytes_per_second=870.437Mi/s items_per_second=39.0975M/s
+BM_BM_MultithreadedWriteSingledThreaded/null_probability:0/unique_values:-1   342408521 ns    334983000 ns            2 bytes_per_second=641.671Mi/s items_per_second=31.3024M/s
+BM_BM_MultithreadedWriteSingledThreaded/null_probability:1/unique_values:32   335083833 ns    334180000 ns            2 bytes_per_second=692.763Mi/s items_per_second=31.3776M/s
+BM_BM_MultithreadedWriteSingledThreaded/null_probability:50/unique_values:32  348892396 ns    345530500 ns            2 bytes_per_second=395.712Mi/s items_per_second=30.3468M/s
+BM_BM_MultithreadedWriteSingledThreaded/null_probability:99/unique_values:32   84019364 ns     83789875 ns            8 bytes_per_second=500.484Mi/s items_per_second=125.144M/s
+BM_BM_MultithreadedWriteSingledThreaded/null_probability:1/unique_values:-1   414124250 ns    404734500 ns            2 bytes_per_second=526.774Mi/s items_per_second=25.9077M/s
+BM_BM_MultithreadedWriteSingledThreaded/null_probability:50/unique_values:-1  379727583 ns    377422000 ns            2 bytes_per_second=337.776Mi/s items_per_second=27.7826M/s
+BM_BM_MultithreadedWriteSingledThreaded/null_probability:99/unique_values:-1   87901802 ns     87713000 ns            8 bytes_per_second=476.139Mi/s items_per_second=119.546M/s
+BM_BM_MultithreadedWriteMultiThreaded/null_probability:0/unique_values:32     267108642 ns      5017200 ns           10 bytes_per_second=45.4388Gi/s items_per_second=2.08996G/s
+BM_BM_MultithreadedWriteMultiThreaded/null_probability:0/unique_values:-1     333058004 ns     42105600 ns           10 bytes_per_second=4.98535Gi/s items_per_second=249.035M/s
+BM_BM_MultithreadedWriteMultiThreaded/null_probability:1/unique_values:32     332149738 ns      5801100 ns           10 bytes_per_second=38.9722Gi/s items_per_second=1.80755G/s
+BM_BM_MultithreadedWriteMultiThreaded/null_probability:50/unique_values:32    340531054 ns     18096100 ns           10 bytes_per_second=7.37872Gi/s items_per_second=579.449M/s
+BM_BM_MultithreadedWriteMultiThreaded/null_probability:99/unique_values:32     83689532 ns     24587207 ns           29 bytes_per_second=1.66561Gi/s items_per_second=426.472M/s
+BM_BM_MultithreadedWriteMultiThreaded/null_probability:1/unique_values:-1     405138775 ns     39510000 ns           10 bytes_per_second=5.26973Gi/s items_per_second=265.395M/s
+BM_BM_MultithreadedWriteMultiThreaded/null_probability:50/unique_values:-1    376613379 ns     19833700 ns           10 bytes_per_second=6.277Gi/s items_per_second=528.684M/s
+BM_BM_MultithreadedWriteMultiThreaded/null_probability:99/unique_values:-1     87787550 ns      2265840 ns          100 bytes_per_second=17.9998Gi/s items_per_second=4.62776G/s
