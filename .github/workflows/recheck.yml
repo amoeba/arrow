@@ -1,0 +1,23 @@
+on:
+  workflow_dispatch:
+    inputs:
+      which:
+        type: choice
+        description: Which dependents to check
+        options:
+        - strong
+        - most
+      subdirectory:
+        type: string
+        description: Subdirectory of R package to be checked
+        default: ''
+
+name: Reverse dependency check
+
+jobs:
+  revdep_check:
+    name: Reverse check ${{ inputs.which }} dependents
+    uses: amoeba/recheck/.github/workflows/recheck.yml@v2
+    with:
+      which: ${{ inputs.which }}
+      subdirectory: ${{ inputs.subdirectory }}
