@@ -84,7 +84,7 @@ jobs:
         run: |
           $(brew --prefix bash)/bin/bash \
             ci/scripts/install_minio.sh latest ${ARROW_HOME}
-      - name: WIP: Update path for minio
+      - name: Update path for minio
         run: |
           export "${ARROW_HOME}/bin >> $GITHUB_PATH
       - name: Set up Python
