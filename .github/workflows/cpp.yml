@@ -36,7 +36,7 @@ jobs:
     name: ${{ matrix.architecture }} macOS ${{ matrix.macos-version }} C++
     runs-on: macos-${{ matrix.macos-version }}
     if: ${{ !contains(github.event.pull_request.title, 'WIP') }}
-    timeout-minutes: 75
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
@@ -84,9 +84,7 @@ jobs:
         run: |
           $(brew --prefix bash)/bin/bash \
             ci/scripts/install_minio.sh latest ${ARROW_HOME}
-      - name: Update path for minio
-        run: |
-          export "${ARROW_HOME}/bin >> $GITHUB_PATH
+          echo "${ARROW_HOME}/bin" >> $GITHUB_PATH
       - name: Set up Python
         uses: actions/setup-python@v5.2.0
         with:
