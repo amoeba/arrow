@@ -109,6 +109,9 @@ jobs:
       - name: Build
         run: |
           ci/scripts/cpp_build.sh $(pwd) $(pwd)/build
+      - name: Setup tmate session
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
       - name: Test
         shell: bash
         run: |
