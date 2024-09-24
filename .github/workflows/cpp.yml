@@ -109,6 +109,8 @@ jobs:
       - name: Build
         run: |
           ci/scripts/cpp_build.sh $(pwd) $(pwd)/build
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
       - name: Test
         shell: bash
         run: |
@@ -116,11 +118,8 @@ jobs:
           sudo sysctl -w kern.corefile=/tmp/core.%N.%P
           ulimit -c unlimited  # must enable within the same shell
           ci/scripts/cpp_test.sh $(pwd) $(pwd)/build
-      - name: Setup tmate session
-        if: ${{ failure() }}
-        uses: mxschmitt/action-tmate@v3
       - uses: actions/upload-artifact@v4
-        if: ${{ !cancelled() }}
+        if: ${{ always() }}
         with:
           name: logs
           path: /Users/runner/work/arrow/arrow/build/cpp/build/test-logs/
