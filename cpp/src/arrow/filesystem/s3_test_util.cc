@@ -136,5 +136,32 @@ Result<std::shared_ptr<MinioTestServer>> MinioTestEnvironment::GetOneServer() {
   return impl_->server_generator_().result();
 }
 
+namespace {
+
+void signal_handler(int signum) {
+  std::cerr << "Signal caught, about to crash. When ready, go check  "
+               "~/Library/Logs/DiagnosticReports/"
+            << std::endl;
+  volatile int* p = nullptr;
+  *p = 0;
+}
+
+}  // namespace
+
+void S3Environment::SetUp() {
+  std::cerr << "SetUp" << std::endl;
+
+  signal(SIGUSR1, signal_handler);
+  S3GlobalOptions options;
+  options.log_level = S3LogLevel::Fatal;
+  ASSERT_OK(InitializeS3(options));
+}
+
+void S3Environment::TearDown() {
+  std::cerr << "TearDown" << std::endl;
+
+  ASSERT_OK(FinalizeS3());
+}
+
 }  // namespace fs
 }  // namespace arrow

@@ -94,6 +94,13 @@ if(ARROW_S3)
        AND CXX_LINKER_SUPPORTS_VERSION_SCRIPT)
       list(APPEND ARROW_S3FS_TEST_COMPILE_DEFINITIONS "AWS_CPP_SDK_S3_PRIVATE_STATIC")
     endif()
+
+# WIP (amoeba)
+set_tests_properties(arrow-s3fs-test PROPERTIES
+  TIMEOUT                      3
+  TIMEOUT_SIGNAL_NAME          SIGUSR1
+)
+# ENDWIP (amoeba)
     target_compile_definitions(arrow-s3fs-test
                                PRIVATE ${ARROW_S3FS_TEST_COMPILE_DEFINITIONS})
   endif()
