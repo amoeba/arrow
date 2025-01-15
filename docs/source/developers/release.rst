@@ -267,8 +267,15 @@ See :ref:`release_verification` for details.
 Voting and approval
 ===================
 
-Start the vote thread on dev@arrow.apache.org and supply instructions for verifying the integrity of the release.
-Approval requires a net of 3 +1 votes from PMC members. A release cannot be vetoed.
+Start the vote thread on dev@arrow.apache.org and supply instructions for
+verifying the integrity of the release. Approval requires a net of 3 +1 votes
+from PMC members and the vote thread should remain open for at least 72 hours. A
+release cannot be vetoed.
+
+To close a vote thread, reply to the vote thread *and* start a new thread
+announcing the result. The body of each message can be the same. The subject of
+the new thread should prepend [RESULT] to the subject (e.g., "[RESULT][VOTE]
+Release..." instead of just "[VOTE] Release...").
 
 Post-release tasks
 ==================
