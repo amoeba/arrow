@@ -45,6 +45,18 @@ if ! git remote | grep -q '^upstream$'; then
   exit 1
 fi
 
+# Make sure we're using GNU sed
+if [ "$(uname)" = "Darwin" ]; then
+    if command -v gsed >/dev/null 2>&1; then
+        SED=$(command -v gsed)
+    else
+        echo "Error: gsed not found. Please install with 'brew install gnu-sed' and re-run this script." >&2
+        exit 1
+    fi
+else
+    SED=$(command -v sed)
+fi
+
 echo "Updating repository: ${repository}"
 git fetch --all --prune --tags --force
 git checkout master
@@ -62,13 +74,13 @@ sha256sum=$(curl \
               --location \
               "https://www.apache.org/dyn/closer.lua?action=download&filename=arrow/arrow-${version}/apache-arrow-${version}.tar.gz.sha256" | \
               cut -d' ' -f1)
-sed \
+$SED \
   -i.bak \
   -e "1a\ \ \"${version}\":" \
   -e "1a\ \ \ \ folder:\ all" \
   ${recipes_arrow}/config.yml
 rm ${recipes_arrow}/config.yml.bak
-sed \
+$SED \
   -i.bak \
   -e "1a\ \ \"${version}\":" \
   -e "1a\ \ \ \ url: \"${tar_gz_url}\"" \
