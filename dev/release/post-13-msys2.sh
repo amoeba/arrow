@@ -76,7 +76,8 @@ done
 for pkgbuild in $(grep -l -r '${MINGW_PACKAGE_PREFIX}-arrow' ./); do
   dir=${pkgbuild%/PKGBUILD}
   name=${dir#./mingw-w64-}
-  if [ ${name} = "python-pyarrow" ]; then
+  # Don't bump pkgrel for pyarrow
+  if [[ "${name}" =~ .+python-pyarrow$ ]]; then
     continue
   fi
   echo "Incrementing ${name}'s pkgrel: ${pkgbuild}"
