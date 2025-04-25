@@ -3531,6 +3531,218 @@ TEST(SubstraitRoundTrip, JoinRelWithEmit) {
                        /*include_columns=*/{}, conversion_options);
 }
 
+TEST(SubstraitRoundTrip, JoinRelMultipleKeys) {
+  auto left_schema = schema({field("A", int32()), field("B", int32()), field("X", int32())});
+  auto right_schema = schema({field("A", int32()), field("B", int32()), field("Y", int32())});
+  auto left_table = TableFromJSON(left_schema, {R"([
+      [1, 1, 10],
+      [1, 2, 3],
+      [2, 2, 3]
+  ])"});
+
+  auto right_table = TableFromJSON(right_schema, {R"([
+      [1, 1, 20],
+      [1, 2, 6],
+      [2, 1, 0]
+  ])"});
+
+  // TODO(amoeba): This Substrait JSON isn't right yet, needs to be multi-key
+  std::string substrait_json = R"({
+  "version": { "major_number": 9999, "minor_number": 9999, "patch_number": 9999 },
+  "relations": [{
+    "rel": {
+      "join": {
+        "left": {
+          "read": {
+            "base_schema": {
+              "names": ["A", "B", "X"],
+              "struct": {
+                "types": [
+                  {
+                    "i32": {}
+                  },
+                  {
+                    "i32": {}
+                  },
+                  {
+                    "i32": {}
+                  }
+                ]
+              }
+            },
+            "namedTable": {
+              "names" : ["left"]
+            }
+          }
+        },
+        "right": {
+          "read": {
+            "base_schema": {
+              "names": ["A", "B", "Y"],
+              "struct": {
+                "types": [{
+                  "i32": {}
+                }, {
+                  "i32": {}
+                }, {
+                  "i32": {}
+                }]
+              }
+            },
+            "namedTable": {
+              "names" : ["right"]
+            }
+          }
+        },
+        "expression": {
+          "scalarFunction": {
+            "functionReference": 2,
+            "outputType": {
+              "bool": {}
+            },
+            "arguments": [
+              {
+                "value": {
+                  "scalarFunction": {
+                    "functionReference": 1,
+                    "outputType": {
+                      "bool": {}
+                    },
+                    "arguments": [
+                      {
+                        "value": {
+                          "selection": {
+                            "directReference": {
+                              "structField": { "field": 1 }
+                            },
+                            "rootReference": {}
+                          }
+                        }
+                      },
+                      {
+                        "value": {
+                          "selection": {
+                            "directReference": {
+                              "structField": { "field": 4 }
+                            },
+                            "rootReference": {}
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "value": {
+                  "scalarFunction": {
+                    "functionReference": 1,
+                    "outputType": {
+                      "bool": {}
+                    },
+                    "arguments": [
+                      {
+                        "value": {
+                          "selection": {
+                            "directReference": {
+                              "structField": {}
+                            },
+                            "rootReference": {}
+                          }
+                        }
+                      },
+                      {
+                        "value": {
+                          "selection": {
+                            "directReference": {
+                              "structField": { "field": 3 }
+                            },
+                            "rootReference": {}
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "type": "JOIN_TYPE_INNER"
+      }
+    }
+  }],
+  "extension_uris": [
+      {
+        "extension_uri_anchor": 0,
+        "uri": ")" + std::string(kSubstraitComparisonFunctionsUri) +
+                               R"("
+      },
+      {
+        "extension_uri_anchor": 1,
+        "uri": ")" + std::string(kSubstraitBooleanFunctionsUri) +
+                               R"("
+      }
+    ],
+    "extensions": [
+      {
+        "extension_function": {
+          "extension_uri_reference": 0,
+          "function_anchor": 0,
+          "name": "equal"
+        }
+      },
+      {
+        "extension_function": {
+          "extension_uri_reference": 1,
+          "function_anchor": 1,
+          "name": "and:bool?"
+        }
+      }
+    ]
+  })";
+
+  ASSERT_OK_AND_ASSIGN(auto buf,
+                       internal::SubstraitFromJSON("Plan", substrait_json,
+                                                   /*ignore_unknown_fields=*/false));
+
+  // include these columns for comparison
+  auto output_schema = schema({
+      field("A", int32()),
+      field("B", int32()),
+      field("X", int32()),
+      field("Y", int32()),
+  });
+
+  // TODO(amoeba): This should fail
+  auto expected_table = TableFromJSON(std::move(output_schema), {R"([
+      [1, 2, 3, 4],
+      [5, 6, 7, 8]
+  ])"});
+
+  NamedTableProvider table_provider =
+      [left_table, right_table](const std::vector<std::string>& names, const Schema&) {
+        std::shared_ptr<Table> output_table;
+        for (const auto& name : names) {
+          if (name == "left") {
+            output_table = left_table;
+          }
+          if (name == "right") {
+            output_table = right_table;
+          }
+        }
+        std::shared_ptr<acero::ExecNodeOptions> options =
+            std::make_shared<acero::TableSourceNodeOptions>(std::move(output_table));
+        return acero::Declaration("table_source", {}, options, "mock_source");
+      };
+
+  ConversionOptions conversion_options;
+  conversion_options.named_table_provider = std::move(table_provider);
+
+  CheckRoundTripResult(std::move(expected_table), buf,
+                       /*include_columns=*/{}, conversion_options);
+}
+
 TEST(SubstraitRoundTrip, AggregateRel) {
   auto dummy_schema =
       schema({field("A", int32()), field("B", int32()), field("C", int32())});
