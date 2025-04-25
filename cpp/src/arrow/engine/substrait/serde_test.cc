@@ -1225,9 +1225,9 @@ TEST(Substrait, ExtensionSetFromPlan) {
        {std::shared_ptr<ExtensionIdRegistry>(), MakeExtensionIdRegistry()}) {
     ExtensionIdRegistry* ext_id_reg = sp_ext_id_reg.get();
     ExtensionSet ext_set(ext_id_reg);
-    ASSERT_OK_AND_ASSIGN(auto sink_decls,
-                         DeserializePlans(
-                             *buf, [] { return kNullConsumer; }, ext_id_reg, &ext_set));
+    ASSERT_OK_AND_ASSIGN(
+        auto sink_decls,
+        DeserializePlans(*buf, [] { return kNullConsumer; }, ext_id_reg, &ext_set));
 
     EXPECT_OK_AND_ASSIGN(auto decoded_null_type, ext_set.DecodeType(42));
     EXPECT_EQ(decoded_null_type.id.uri, kArrowExtTypesUri);
@@ -1661,9 +1661,9 @@ TEST(Substrait, JoinPlanBasic) {
        {std::shared_ptr<ExtensionIdRegistry>(), MakeExtensionIdRegistry()}) {
     ExtensionIdRegistry* ext_id_reg = sp_ext_id_reg.get();
     ExtensionSet ext_set(ext_id_reg);
-    ASSERT_OK_AND_ASSIGN(auto sink_decls,
-                         DeserializePlans(
-                             *buf, [] { return kNullConsumer; }, ext_id_reg, &ext_set));
+    ASSERT_OK_AND_ASSIGN(
+        auto sink_decls,
+        DeserializePlans(*buf, [] { return kNullConsumer; }, ext_id_reg, &ext_set));
 
     auto join_decl = sink_decls[0].inputs[0];
 
@@ -3532,8 +3532,10 @@ TEST(SubstraitRoundTrip, JoinRelWithEmit) {
 }
 
 TEST(SubstraitRoundTrip, JoinRelMultipleKeys) {
-  auto left_schema = schema({field("A", int32()), field("B", int32()), field("X", int32())});
-  auto right_schema = schema({field("A", int32()), field("B", int32()), field("Y", int32())});
+  auto left_schema =
+      schema({field("A", int32()), field("B", int32()), field("X", int32())});
+  auto right_schema =
+      schema({field("A", int32()), field("B", int32()), field("Y", int32())});
   auto left_table = TableFromJSON(left_schema, {R"([
       [1, 1, 10],
       [1, 2, 3],
@@ -3580,13 +3582,15 @@ TEST(SubstraitRoundTrip, JoinRelMultipleKeys) {
             "base_schema": {
               "names": ["A", "B", "Y"],
               "struct": {
-                "types": [{
-                  "i32": {}
-                }, {
-                  "i32": {}
-                }, {
-                  "i32": {}
-                }]
+                "types": [
+                  {
+                    "i32": {}
+                  }, {
+                    "i32": {}
+                  }, {
+                    "i32": {}
+                  }
+                ]
               }
             },
             "namedTable": {
@@ -3613,7 +3617,7 @@ TEST(SubstraitRoundTrip, JoinRelMultipleKeys) {
                         "value": {
                           "selection": {
                             "directReference": {
-                              "structField": { "field": 1 }
+                              "structField": {}
                             },
                             "rootReference": {}
                           }
@@ -3623,7 +3627,7 @@ TEST(SubstraitRoundTrip, JoinRelMultipleKeys) {
                         "value": {
                           "selection": {
                             "directReference": {
-                              "structField": { "field": 4 }
+                              "structField": { "field": 3 }
                             },
                             "rootReference": {}
                           }
@@ -3645,7 +3649,7 @@ TEST(SubstraitRoundTrip, JoinRelMultipleKeys) {
                         "value": {
                           "selection": {
                             "directReference": {
-                              "structField": {}
+                              "structField": { "field": 1 }
                             },
                             "rootReference": {}
                           }
@@ -3655,7 +3659,7 @@ TEST(SubstraitRoundTrip, JoinRelMultipleKeys) {
                         "value": {
                           "selection": {
                             "directReference": {
-                              "structField": { "field": 3 }
+                              "structField": { "field": 4 }
                             },
                             "rootReference": {}
                           }
@@ -3688,14 +3692,14 @@ TEST(SubstraitRoundTrip, JoinRelMultipleKeys) {
       {
         "extension_function": {
           "extension_uri_reference": 0,
-          "function_anchor": 0,
+          "function_anchor": 1,
           "name": "equal"
         }
       },
       {
         "extension_function": {
           "extension_uri_reference": 1,
-          "function_anchor": 1,
+          "function_anchor": 2,
           "name": "and:bool?"
         }
       }
@@ -3711,13 +3715,15 @@ TEST(SubstraitRoundTrip, JoinRelMultipleKeys) {
       field("A", int32()),
       field("B", int32()),
       field("X", int32()),
+      field("A", int32()),
+      field("B", int32()),
       field("Y", int32()),
   });
 
   // TODO(amoeba): This should fail
   auto expected_table = TableFromJSON(std::move(output_schema), {R"([
-      [1, 2, 3, 4],
-      [5, 6, 7, 8]
+      [1, 1, 10, 1, 1, 20],
+      [1, 2, 3, 1, 2, 6]
   ])"});
 
   NamedTableProvider table_provider =

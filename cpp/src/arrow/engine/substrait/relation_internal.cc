@@ -27,6 +27,7 @@
 #include <utility>
 #include <variant>
 #include <vector>
+#include <stdio.h>
 
 #include "arrow/acero/aggregate_node.h"
 #include "arrow/acero/exec_plan.h"
@@ -712,16 +713,64 @@ Result<DeclarationInfo> FromProto(const substrait::Rel& rel, const ExtensionSet&
             expression.ToString());
       }
 
-      acero::JoinKeyCmp join_key_cmp;
-      if (callptr->function_name == "equal") {
-        join_key_cmp = acero::JoinKeyCmp::EQ;
-      } else if (callptr->function_name == "is_not_distinct_from") {
-        join_key_cmp = acero::JoinKeyCmp::IS;
+      // Extract the sets of left and right keys and the appropriate number of
+      // functions, one for each left-right pair
+      std::vector<FieldRef> left_keys;
+      std::vector<FieldRef> right_keys;
+      std::vector<std::string> function_names;
+
+      // Note: This code only handles 1-2 join keys and = or IS NOT DISTINCT
+      // FROM for each key pair. Anything more complicated will fail.
+      if (callptr->function_name == "equal" || callptr->function_name == "is_not_distinct_from") {
+        left_keys.push_back(*callptr->arguments[0].field_ref());
+        right_keys.push_back(*callptr->arguments[1].field_ref());
+
+        function_names.push_back(callptr->function_name);
+      } else if (callptr->function_name == "and_kleene") {
+        auto and_arg0  = callptr->arguments[0].call();
+        auto and_arg1  = callptr->arguments[1].call();
+
+        left_keys.push_back(*and_arg0->arguments[0].field_ref());
+        left_keys.push_back(*and_arg1->arguments[0].field_ref());
+        right_keys.push_back(*and_arg0->arguments[1].field_ref());
+        right_keys.push_back(*and_arg1->arguments[1].field_ref());
+
+        function_names.push_back(and_arg0->function_name);
+        function_names.push_back(and_arg1->function_name);
       } else {
         return Status::Invalid(
-            "Only `equal` or `is_not_distinct_from` are supported for join key "
-            "comparison but got ",
+            "Only `equal`, `is_not_distinct_from`, and `and` are supported ",
+            "for top-level join key comparison but got ",
             callptr->function_name);
+      }
+
+      // Ensure we got valid fields in every call
+      for (auto const &key : left_keys) {
+        if (!key.field_path()) {
+          return Status::Invalid(
+            "join condition must include references to both left and right inputs");
+        }
+      }
+      for (auto const &key : right_keys) {
+        if (!key.field_path()) {
+          return Status::Invalid(
+            "join condition must include references to both left and right inputs");
+        }
+      }
+
+      // Map function_names to JoinKeyCmps and validate at the same time
+      std::vector<acero::JoinKeyCmp> join_key_cmps;
+      for (auto const &fn : function_names) {
+        if (fn == "equal") {
+          join_key_cmps.push_back(acero::JoinKeyCmp::EQ);
+        } else if (fn == "is_not_distinct_from") {
+          join_key_cmps.push_back(acero::JoinKeyCmp::IS);
+        } else {
+          return Status::Invalid(
+            "Only `equal`, and `is_not_distinct_from` are supported ",
+            "for join key comparison but got ",
+            fn);
+        }
       }
 
       // Create output schema from left, right relations and join keys
@@ -731,27 +780,23 @@ Result<DeclarationInfo> FromProto(const substrait::Rel& rel, const ExtensionSet&
                              right_fields.end());
       std::shared_ptr<Schema> join_schema = schema(std::move(combined_fields));
 
-      // adjust the join_keys according to Substrait definition where
-      // the join fields are defined by considering the `join_schema` which
-      // is the combination of the left and right relation schema.
-
+      // Adjust Substrait indices for Acero. Substrait indices are relative to
+      // the output schema and Acero's are relative to the relation
+      //
       // TODO: ARROW-16624 Add Suffix support for Substrait
-      const auto* left_keys = callptr->arguments[0].field_ref();
-      const auto* right_keys = callptr->arguments[1].field_ref();
-      // Validating JoinKeys
-      if (!left_keys || !right_keys) {
-        return Status::Invalid(
-            "join condition must include references to both left and right inputs");
+      std::vector<int> adjusted_right_indices;
+      auto num_left_fields = left.output_schema->num_fields();
+      for (auto const &key : right_keys) {
+        adjusted_right_indices.push_back(key.field_path()->indices()[0]-num_left_fields);
       }
-      int num_left_fields = left.output_schema->num_fields();
-      const auto* right_field_path = right_keys->field_path();
-      std::vector<int> adjusted_field_indices(right_field_path->indices());
-      adjusted_field_indices[0] -= num_left_fields;
-      FieldPath adjusted_right_keys(adjusted_field_indices);
-      acero::HashJoinNodeOptions join_options{{std::move(*left_keys)},
-                                              {std::move(adjusted_right_keys)}};
+      std::vector<FieldRef> adjusted_right_fields(adjusted_right_indices.begin(), adjusted_right_indices.end());
+
+      acero::HashJoinNodeOptions join_options{{std::move(left_keys)},
+                                              {std::move(adjusted_right_fields)}};
       join_options.join_type = join_type;
-      join_options.key_cmp = {join_key_cmp};
+      join_options.key_cmp.insert(join_options.key_cmp.end(), join_key_cmps.begin(), join_key_cmps.end());
+      join_options.key_cmp = std::move(join_key_cmps);
+
       acero::Declaration join_dec{"hashjoin", std::move(join_options)};
       join_dec.inputs.emplace_back(std::move(left.declaration));
       join_dec.inputs.emplace_back(std::move(right.declaration));
