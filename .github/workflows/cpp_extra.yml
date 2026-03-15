@@ -589,21 +589,23 @@ jobs:
         if: steps.release-check.outputs.is_release == 'true'
         shell: bash
         run: |
-          cd build/cpp
           # Get version from CMakeLists.txt
-          ARROW_VERSION=$(grep 'set(ARROW_VERSION' ../../cpp/CMakeLists.txt | \
+          ARROW_VERSION=$(grep 'set(ARROW_VERSION' cpp/CMakeLists.txt | \
                           grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
 
+          # List what we have
+          echo "Contents of build/cpp:"
+          ls -lah build/cpp/
+          echo "Contents of build/cpp/release/:"
+          ls -lah build/cpp/release/ || echo "release/ not found"
+
           # Create tarball with everything needed for cpack to create MSI
-          tar -czf ../../odbc-build-windows-${ARROW_VERSION}.tar.gz \
-            release/*.dll \
-            release/*.lib \
-            _CPack_Packages/ \
-            CPackConfig.cmake \
-            CPackSourceConfig.cmake \
-            cmake_install.cmake \
-            ../../LICENSE.txt \
-            ../../cpp/src/arrow/flight/sql/odbc/install/
+          tar -czf odbc-build-windows-${ARROW_VERSION}.tar.gz \
+            build/cpp/CPackConfig.cmake \
+            build/cpp/CPackSourceConfig.cmake \
+            build/cpp/release/ \
+            LICENSE.txt \
+            cpp/src/arrow/flight/sql/odbc/install/
       - name: Upload build artifacts to the job
         if: steps.release-check.outputs.is_release == 'true'
         uses: actions/upload-artifact@v7
