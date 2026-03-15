@@ -561,12 +561,8 @@ jobs:
         id: release-check
         shell: bash
         run: |
-          if [[ "${GITHUB_REF_TYPE}" == "tag" ]] && \
-             [[ "${GITHUB_REF_NAME}" == apache-arrow-*-rc* ]]; then
-            echo "is_release=true" >> $GITHUB_OUTPUT
-          else
-            echo "is_release=false" >> $GITHUB_OUTPUT
-          fi
+          # TEMPORARY: Force release build for testing
+          echo "is_release=true" >> $GITHUB_OUTPUT
       - name: Install WiX Toolset
         if: steps.release-check.outputs.is_release == 'false'
         shell: pwsh
@@ -703,7 +699,7 @@ jobs:
     needs: odbc-msvc
     name: ODBC release
     runs-on: ubuntu-latest
-    if: ${{ startsWith(github.ref_name, 'apache-arrow-') && contains(github.ref_name, '-rc') }}
+    if: ${{ github.ref_name == 'GH-49404/windows-release-signing' || (startsWith(github.ref_name, 'apache-arrow-') && contains(github.ref_name, '-rc')) }}
     permissions:
       # Upload to GitHub Release
       contents: write
@@ -717,20 +713,25 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: flight-sql-odbc-build-artifacts
-      - name: Wait for creating GitHub Release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: List downloaded artifacts (for testing)
         run: |
-          dev/release/utils-watch-gh-workflow.sh \
-            ${GITHUB_REF_NAME} \
-            release_candidate.yml
-      - name: Upload the build artifacts to GitHub Release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release upload ${GITHUB_REF_NAME} \
-            --clobber \
-            odbc-build-windows-*.tar.gz
+          ls -lah
+          file odbc-build-windows-*.tar.gz || echo "No tarball found"
+      # TEMPORARY: Skip release upload for testing
+      # - name: Wait for creating GitHub Release
+      #   env:
+      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   run: |
+      #     dev/release/utils-watch-gh-workflow.sh \
+      #       ${GITHUB_REF_NAME} \
+      #       release_candidate.yml
+      # - name: Upload the build artifacts to GitHub Release
+      #   env:
+      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   run: |
+      #     gh release upload ${GITHUB_REF_NAME} \
+      #       --clobber \
+      #       odbc-build-windows-*.tar.gz
 
   report-extra-cpp:
     if: github.event_name == 'schedule' && always()
