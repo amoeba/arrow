@@ -557,13 +557,25 @@ jobs:
           # Convert VCPKG Windows path to MSYS path
           for /f "usebackq delims=" %%I in (`bash -c "cygpath -u \"$VCPKG_ROOT_KEEP\""` ) do set VCPKG_ROOT=%%I
           bash -c "ci/scripts/cpp_test.sh $(pwd) $(pwd)/build"
+      - name: Check if release build
+        id: release-check
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]] && \
+             [[ "${GITHUB_REF_NAME}" == apache-arrow-*-rc* ]]; then
+            echo "is_release=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_release=false" >> $GITHUB_OUTPUT
+          fi
       - name: Install WiX Toolset
+        if: steps.release-check.outputs.is_release == 'false'
         shell: pwsh
         run: |
           Invoke-WebRequest -Uri https://github.com/wixtoolset/wix/releases/download/v6.0.0/wix-cli-x64.msi -OutFile wix-cli-x64.msi
           Start-Process -FilePath wix-cli-x64.msi -ArgumentList '/quiet', 'Include_freethreaded=1' -Wait
           echo "C:\Program Files\WiX Toolset v6.0\bin\" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - name: Build MSI ODBC installer
+        if: steps.release-check.outputs.is_release == 'false'
         shell: pwsh
         run: |
           # Verify WiX version
@@ -571,12 +583,40 @@ jobs:
           cd build/cpp
           cpack
       - name: Upload the artifacts to the job
+        if: steps.release-check.outputs.is_release == 'false'
         uses: actions/upload-artifact@v7
         with:
           name: flight-sql-odbc-msi-installer
           path: build/cpp/Apache-Arrow-Flight-SQL-ODBC-*-win64.msi
           if-no-files-found: error
+      - name: Package build artifacts for release
+        if: steps.release-check.outputs.is_release == 'true'
+        shell: bash
+        run: |
+          cd build/cpp
+          # Get version from CMakeLists.txt
+          ARROW_VERSION=$(grep 'set(ARROW_VERSION' ../../cpp/CMakeLists.txt | \
+                          grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+
+          # Create tarball with everything needed for cpack to create MSI
+          tar -czf ../../odbc-build-windows-${ARROW_VERSION}.tar.gz \
+            release/*.dll \
+            release/*.lib \
+            _CPack_Packages/ \
+            CPackConfig.cmake \
+            CPackSourceConfig.cmake \
+            cmake_install.cmake \
+            ../../LICENSE.txt \
+            ../../cpp/src/arrow/flight/sql/odbc/install/
+      - name: Upload build artifacts to the job
+        if: steps.release-check.outputs.is_release == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: flight-sql-odbc-build-artifacts
+          path: odbc-build-windows-*.tar.gz
+          if-no-files-found: error
       - name: Install ODBC MSI
+        if: steps.release-check.outputs.is_release == 'false'
         run: |
           cd build/cpp
           $odbc_msi = Get-ChildItem -Filter "Apache-Arrow-Flight-SQL-ODBC-*-win64.msi"
@@ -592,6 +632,7 @@ jobs:
             Get-Content $log
           }
       - name: Check ODBC DLL installation
+        if: steps.release-check.outputs.is_release == 'false'
         run: |
           $dirs = Get-ChildItem "C:\Program Files" -Directory -Filter "Apache-Arrow-Flight-SQL-ODBC*"
 
@@ -672,10 +713,10 @@ jobs:
         with:
           fetch-depth: 0
           submodules: recursive
-      - name: Download the artifacts
+      - name: Download the build artifacts
         uses: actions/download-artifact@v8
         with:
-          name: flight-sql-odbc-msi-installer
+          name: flight-sql-odbc-build-artifacts
       - name: Wait for creating GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -683,13 +724,13 @@ jobs:
           dev/release/utils-watch-gh-workflow.sh \
             ${GITHUB_REF_NAME} \
             release_candidate.yml
-      - name: Upload the artifacts to GitHub Release
+      - name: Upload the build artifacts to GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload ${GITHUB_REF_NAME} \
             --clobber \
-            Apache-Arrow-Flight-SQL-ODBC-*-win64.msi
+            odbc-build-windows-*.tar.gz
 
   report-extra-cpp:
     if: github.event_name == 'schedule' && always()
