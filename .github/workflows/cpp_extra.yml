@@ -639,10 +639,10 @@ jobs:
     name: ODBC Windows Upload Unsigned DLL
     runs-on: windows-2022
     if: >-
-      ${{ 
-        startsWith(github.ref_name, 'apache-arrow-') && 
-        contains(github.ref_name, '-rc') && 
-        !inputs.odbc_release_step 
+      ${{
+        startsWith(github.ref_name, 'AMOEBA-arrow-') &&
+        contains(github.ref_name, '-rc') &&
+        !inputs.odbc_release_step
       }}
     timeout-minutes: 240
     permissions:
