@@ -62,9 +62,33 @@ case "$CXX" in
     ;;
 esac
 
+# When building the R package for webR/rwasm, the R toolchain points CC/CXX to
+# emcc/em++, but CMake still needs to be invoked via emcmake so it configures
+# Arrow for Emscripten instead of treating the target as a generic wasm32 host.
+ARROW_WASM_BUILD="OFF"
+CMAKE_WRAPPER=""
+ARROW_WASM_CMAKE_ARGS=""
+case "${CC} ${CXX}" in
+  *emcc*|*em++*)
+    ARROW_WASM_BUILD="ON"
+    CMAKE_WRAPPER="emcmake"
+    ARROW_DEPENDENCY_SOURCE="BUNDLED"
+    ARROW_GCS="OFF"
+    ARROW_JEMALLOC="OFF"
+    ARROW_MIMALLOC="OFF"
+    ARROW_S3="OFF"
+    ARROW_WASM_CMAKE_ARGS="-DARROW_DEPENDENCY_USE_SHARED=OFF -DARROW_ENABLE_THREADING=OFF -DARROW_FLIGHT=OFF -DARROW_RUNTIME_SIMD_LEVEL=NONE -DARROW_SIMD_LEVEL=NONE"
+    ;;
+esac
+
+if [ "${ARROW_WASM_BUILD}" = "ON" ] && ! command -v emcmake >/dev/null 2>&1; then
+  echo "emcmake is required for Emscripten/webR builds but was not found in PATH"
+  exit 1
+fi
+
 mkdir -p "${BUILD_DIR}"
 pushd "${BUILD_DIR}"
-${CMAKE} -DARROW_BOOST_USE_SHARED=OFF \
+${CMAKE_WRAPPER} ${CMAKE} -DARROW_BOOST_USE_SHARED=OFF \
     -DARROW_SNAPPY_USE_SHARED=OFF \
     -DARROW_BUILD_TESTS=OFF \
     -DARROW_BUILD_SHARED=OFF \
@@ -93,6 +117,7 @@ ${CMAKE} -DARROW_BOOST_USE_SHARED=OFF \
     -DARROW_WITH_ZLIB=${ARROW_WITH_ZLIB:-$ARROW_DEFAULT_PARAM} \
     -DARROW_WITH_ZSTD=${ARROW_WITH_ZSTD:-$ARROW_DEFAULT_PARAM} \
     -DARROW_VERBOSE_THIRDPARTY_BUILD=${ARROW_VERBOSE_THIRDPARTY_BUILD:-OFF} \
+    ${ARROW_WASM_CMAKE_ARGS} \
     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-Release} \
     -DCMAKE_FIND_DEBUG_MODE=${CMAKE_FIND_DEBUG_MODE:-OFF} \
     -DCMAKE_INSTALL_LIBDIR=lib \
