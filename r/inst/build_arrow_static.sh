@@ -36,7 +36,7 @@ set -x
 SOURCE_DIR="$(cd "${SOURCE_DIR}" && pwd)"
 DEST_DIR="$(mkdir -p "${DEST_DIR}" && cd "${DEST_DIR}" && pwd)"
 
-if [ "$N_JOBS" = "" ]; then
+if ! [[ "${N_JOBS:-}" =~ ^[1-9][0-9]*$ ]]; then
   if [ "`uname -s`" = "Darwin" ]; then
     N_JOBS="$(sysctl -n hw.logicalcpu)"
   else
@@ -77,7 +77,13 @@ case "${CC} ${CXX}" in
     ARROW_JEMALLOC="OFF"
     ARROW_MIMALLOC="OFF"
     ARROW_S3="OFF"
+    ARROW_WITH_BROTLI="OFF"
+    ARROW_WITH_BZ2="OFF"
+    ARROW_WITH_ZSTD="OFF"
     ARROW_WASM_CMAKE_ARGS="-DARROW_DEPENDENCY_USE_SHARED=OFF -DARROW_ENABLE_THREADING=OFF -DARROW_FLIGHT=OFF -DARROW_RUNTIME_SIMD_LEVEL=NONE -DARROW_SIMD_LEVEL=NONE"
+    # Keep the Emscripten build low-parallelism. Arrow's own CI does this
+    # because dockerized emscripten builds become flaky with too many jobs.
+    N_JOBS=2
     ;;
 esac
 
